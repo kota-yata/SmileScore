@@ -2,20 +2,29 @@
   import '../styles/app.scss';
 </script>
 
+<header>😀 Smile<span>Score</span></header>
 <main>
   <slot />
 </main>
 
-<footer>@ 2021 Kota Yatagai</footer>
-
 <style lang="scss">
-  main {
-    margin: 0 auto;
-    width: 85%;
+  @import '../styles/variable.scss';
+
+  header {
+    margin: 0;
+    padding: 0 20px;
+    margin-bottom: 20px;
+    height: 70px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    span {
+      color: $red;
+    }
   }
-  footer {
-    width: 100vw;
-    text-align: center;
-    padding-bottom: 10px;
+  main {
+    width: 96vw;
+    max-width: 1600px;
+    margin: 0 auto;
   }
 </style>
