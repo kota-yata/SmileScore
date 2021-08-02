@@ -4,7 +4,9 @@
   import Loading from '$lib/loading.svelte';
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
-  import { adoptImageData } from '$lib/imageProcess';
+  import { adoptImageData, analyzeFace, saveBlobFile } from '$lib/imageProcess';
+  import type { DetectFacesCommandOutput } from '@aws-sdk/client-rekognition';
+  import { computeTotalScore } from '$lib/totalScore';
 
   const countdown = {
     num: 3,
@@ -15,7 +17,8 @@
     total: 0,
     smilingRate: 0,
     openMouthRate: 0,
-    happiness: 0
+    happiness: 0,
+    faceCount: 0,
   };
 
   let state: 'init' | 'waiting' | 'done' = 'init';
@@ -25,7 +28,10 @@
     element: null as HTMLVideoElement,
     inputDevices: null as MediaDeviceInfo[],
     selectedDevice: null as string
-  }
+  };
+  let image;
+
+  $: shareText = `https://twitter.com/intent/tweet?url=https://smilescore.vercel.app/&text=My SmileScore is ${scores.total}😀 %0AHow about yours??%0A%0A&via=kota_yata&related=kota_yata&amp;hashtags=SmileScore`;
 
   const calculateCanvasSize = (stream: MediaStream) => {
     const aspectRatio = stream.getVideoTracks()[0].getSettings().aspectRatio;
@@ -51,16 +57,28 @@
     calculateCanvasSize(stream);
   }
 
+  const computeResult = (faceData: DetectFacesCommandOutput) => {
+    scores.smilingRate = faceData.FaceDetails[0].Smile.Value ? faceData.FaceDetails[0].Smile.Confidence : 0;
+    scores.openMouthRate = faceData.FaceDetails[0].MouthOpen.Value ? faceData.FaceDetails[0].MouthOpen.Confidence : 0;
+    scores.happiness = faceData.FaceDetails[0].Emotions[2].Confidence;
+    scores.faceCount = faceData.FaceDetails.length;
+    scores.total = computeTotalScore([scores.smilingRate, scores.openMouthRate, scores.happiness]);
+  };
+
   const takePhoto = async () => {
     state = 'waiting';
     camera.element.pause();
     const context = canvas.getContext('2d');
     context.drawImage(camera.element, 0, 0, camera.element.offsetWidth, camera.element.offsetHeight);
-    const imageURL = canvas.toDataURL('image/jpeg', 1);
-    await adoptImageData(imageURL);
+    image = canvas.toDataURL('image/jpeg', 1);
+    const faceData: DetectFacesCommandOutput = await analyzeFace(image);
+    console.log(faceData);
+    computeResult(faceData);
+    state = 'done';
   };
 
   const takeButtonOnClick = () => {
+    camera.element.play();
     countdown.isCountdownVisible = true;
     const timer = setInterval(() => {
       countdown.num--;
@@ -71,7 +89,19 @@
         takePhoto();
       };
     }, 1000)
-  }
+  };
+
+  const saveButtonOnClick = async () => {
+    const uint = await adoptImageData(image);
+    const blob: Blob = new Blob([uint.buffer], { type: 'image/jpeg' });
+    const options = {
+      types: [{
+        description: 'Image Files',
+        accept: { 'image/jpeg': ['.jpg', '.jpeg'], },
+      },],
+    };
+    await saveBlobFile(options, blob);
+  };
 </script>
 
 <svelte:head>
@@ -105,7 +135,7 @@
   </div>
   <div class="scores">
     {#if state === 'init'}
-    <span>Your smile score will shown here 👍</span>
+    <span>Your smile score will be shown here 👍</span>
     {:else if state === 'waiting'}
     <Loading /><br />
     {:else if state === 'done'}
@@ -122,8 +152,8 @@
       </div>
     </div>
     <div class="share" transition:fade={{delay: 5000}}>
-      <a href="twitter.com"><img alt="twitter icon" src="/twitter.svg" width="20px" height="20px" />Tweet</a>
-      <button><img alt="save icon" src="/save.svg" width="20px" height="20px" />Save smile</button>
+      <a href="{shareText}" target="blank"><img alt="twitter icon" src="/twitter.svg" width="20px" height="20px" />Tweet</a>
+      <button on:click="{saveButtonOnClick}"><img alt="save icon" src="/save.svg" width="20px" height="20px" />Save smile</button>
     </div>
     {/if}
   </div>
@@ -137,6 +167,7 @@
     text-align: center;
     margin: 0 auto;
     .cams {
+      width: 100%;
       height: 55vh;
       display: flex;
       flex-wrap: wrap;
@@ -205,6 +236,9 @@
       justify-content: space-evenly;
       align-items: flex-start;
       padding-top: 5%;
+      & > span {
+        padding-top: 5%;
+      }
       .total {
         &-score {
           font-size: 144px;
@@ -224,34 +258,77 @@
           }
         }
       }
-    }
-    .share {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      a, button {
-        font-size: 18px;
-        color: $white;
+      .share {
         display: flex;
-        align-items: center;
-        padding: 15px 28px;
-        border-radius: 100px;
-        margin-bottom: 20px;
-        img {
-          margin-right: 15px;
+        flex-direction: column;
+        align-items: flex-start;
+        a, button {
+          font-size: 18px;
+          color: $white;
+          display: flex;
+          align-items: center;
+          padding: 15px 28px;
+          border-radius: 100px;
+          margin-bottom: 20px;
+          img {
+            margin-right: 15px;
+          }
+        }
+        & > a {
+          text-decoration: none;
+          background: $twitter-blue;
+        }
+        & > button {
+          cursor: pointer;
+          font-weight: 600;
+          background: $red;
+          transition: 0.2s;
+          &:hover {
+            opacity: 0.7;
+            transition: 0.2s;
+          }
         }
       }
-      & > a {
-        text-decoration: none;
-        background: $twitter-blue;
+    }
+  }
+
+  @media screen and (max-width: 1100px) {
+    .cams-message > div > p {
+      font-size: 15px;
+    }
+  }
+
+  @media screen and (max-width: 500px) {
+    .container {
+      .cams {
+        height: auto;
+        .video {
+          width: 100vw;
+          overflow: hidden;
+          display: flex;
+          justify-content: center;
+        }
+        &-message {
+          padding: 0;
+          & > h2 {
+            font-size: 24px;
+          }
+        }
       }
-      & > button {
-        font-weight: 600;
-        background: $red;
-        transition: 0.2s;
-        &:hover {
-          opacity: 0.7;
-          transition: 0.2s;
+      .scores {
+        height: auto;
+        & > span {
+          font-size: 15px;
+        }
+        .details {
+          width: 80vw;
+          font-size: 15px;
+          & > div > span {
+            font-size: 20px;
+          }
+        }
+        .share {
+          margin-top: 40px;
         }
       }
     }
