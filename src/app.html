@@ -3,11 +3,12 @@
 	<head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    %svelte.head%
     <meta name="description" content="Score your smile.">
     <meta name="keyword" content="smilescore,smile,kota,yatagai">
     <meta property="og:url" content="https://smilescore.vercel.app" />
     <meta property="og:title" content="SmileScore" />
-    <meta property="og:image" content="https://www.kota-yata.com/ogp.webp" />
+    <meta property="og:image" content="https://smilescore.vercel.app/ogp.webp" />
     <meta property="og:description" content="Crack a smile with your mouth open." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@kota_yata" />
@@ -20,8 +21,7 @@
     <script>
       window.global = window;
       var exports = {}
-    </script>
-		%svelte.head%
+</script>
 	</head>
 	<body>
 		<div id="svelte">%svelte.body%</div>
