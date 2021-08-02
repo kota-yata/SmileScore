@@ -9,6 +9,6 @@ export const computeTotalScore = (scores: number[]): number => {
     const squared = 90 + (sub ** 2) / 10;
     total += squared;
   };
-  total = Math.round(total / 3);
+  total = Math.floor(total / 3);
   return total;
 };

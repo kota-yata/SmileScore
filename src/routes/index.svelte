@@ -50,7 +50,6 @@
   });
 
   const changeDevice = async (e) => {
-    console.log(e.target.value);
     const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: e.target.value } } });
     camera.element.srcObject = stream;
     camera.element.play();
@@ -60,7 +59,7 @@
   const computeResult = (faceData: DetectFacesCommandOutput) => {
     scores.smilingRate = faceData.FaceDetails[0].Smile.Value ? faceData.FaceDetails[0].Smile.Confidence : 0;
     scores.openMouthRate = faceData.FaceDetails[0].MouthOpen.Value ? faceData.FaceDetails[0].MouthOpen.Confidence : 0;
-    scores.happiness = faceData.FaceDetails[0].Emotions[2].Confidence;
+    scores.happiness = faceData.FaceDetails[0].Emotions.find(emotion => emotion.Type === 'HAPPY').Confidence;
     scores.faceCount = faceData.FaceDetails.length;
     scores.total = computeTotalScore([scores.smilingRate, scores.openMouthRate, scores.happiness]);
   };

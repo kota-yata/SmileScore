@@ -2,7 +2,10 @@
   import '../styles/app.scss';
 </script>
 
-<header>😀 Smile<span>Score</span></header>
+<header>
+  <p>😀 Smile<span>Score</span></p>
+  <span>Only on Chromium<img alt="chromium" src="chromium.svg" width="20px" height="20px" /></span>
+</header>
 <main>
   <slot />
 </main>
@@ -15,11 +18,24 @@
     padding: 0 20px;
     margin-bottom: 20px;
     height: 70px;
-    font-size: 24px;
     display: flex;
     align-items: center;
-    span {
-      color: $red;
+    justify-content: space-between;
+    & > p {
+      font-size: 24px;
+      & > span {
+        color: $red;
+      }
+    }
+    & > span {
+      font-size: 15px;
+      font-weight: 500;
+      color: $dark-gray;
+      display: flex;
+      align-items: center;
+      & > img {
+        margin-left: 5px;
+      }
     }
   }
   main {

@@ -14,20 +14,16 @@ const client = new RekognitionClient({
 });
 
 export const adoptImageData = async (dataURL: string): Promise<Uint8Array> => {
-  const image = atob(dataURL.split('data:image/jpeg;base64,')[1]);
-  const length = image.length;
-  const imageBytes = new ArrayBuffer(length);
-  const ua = new Uint8Array(imageBytes);
-  for (let i = 0; i < length; i++) {
-    ua[i] = image.charCodeAt(i);
-  }
-  return ua;
+  const imageRes = await fetch(dataURL);
+  const buf = await imageRes.arrayBuffer();
+  const uint = new Uint8Array(buf);
+  return uint;
 };
 
 export const analyzeFace = async (dataURL: string): Promise<DetectFacesCommandOutput> => {
   const binary = await adoptImageData(dataURL);
   const params = {
-    Image: { Bytes: binary, },
+    Image: { Bytes: binary },
     Attributes: ['ALL'],
   };
   const faceData = await client.send(new DetectFacesCommand(params)).catch((err) => { console.log(err); }) as DetectFacesCommandOutput;
@@ -50,7 +46,7 @@ export const saveBlobFile = async (opts: unknown, body: Blob): Promise<void> => 
     return;
   }
   // Files System Acecss APIに対応しない古いブラウザーの場合
-  console.log('このブラウザはFile System Access APIに対応していません');
+  console.log('File System Access API is not available on this browser');
   const a: HTMLAnchorElement = document.createElement('a');
   a.href = window.URL.createObjectURL(body);
   a.download = 'mysmile';
